@@ -10,3 +10,4 @@ lia.cache
 *.bkp
 \#*.v#
 Makefile
+.coqdeps.d
