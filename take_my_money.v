@@ -26,8 +26,21 @@ Definition take_my_money_program :=
     (* Cleanup and put the return values *)
     PAIR.
 
-Example typing_take_my_money :
+Theorem typing_take_my_money :
   take_my_money_program :i: ([ t_pair (t_contract t_unit t_unit) t_unit ] --> [ t_pair t_unit t_unit ]).
 Proof. by typecheck_program. Qed.
 
-Lemma 
+(*
+  h, hinp : handles of contracts, h = current handle, hinp = handle of input contract
+  state : (i * s * m) option
+  i : instructions
+  s : stack
+  b : blockchain (mapping from handles to contract_reprs)
+ *)
+Theorem balance_reduces_by_1 ch rh b0:
+  forall r b1,
+  transfer_tokens Unit (Tez 1) ch rh Unit b0 = Some (r, b1) ->
+  evaluates ch (Some (take_my_money_program, [:: { DContract rh, Unit } ], b0)) (Some (Done, [:: { Unit, Unit } ], b1)).
+Proof.
+  intros R B P.
+Qed.
