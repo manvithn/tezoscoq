@@ -31,14 +31,14 @@ Theorem transfer_1tez_prog_type :
 Proof. by typecheck_program. Qed.
 
 (*
-Inductive var := B : nat -> var .
+Inductive var := B : nat -> var.
 
 Definition f x :=
   match x with
-  | B n => if n > (5%:Z) then None else Some (Int n)
+  | B n => if n > (5%nat) then None else Some (Int n)
   end.
 
-Lemma success x:
+Lemma success x :
   forall y,
   f x = Some y -> y = Int 1.
 Proof.
@@ -52,7 +52,7 @@ Proof.
 Qed.
 *)
 
-Lemma transfer_success_returns_unit ch rh b0:
+Lemma transfer_1tez_success_returns_unit ch rh b0 :
   forall r b1,
   transfer_tokens Unit (Tez 1) ch rh Unit b0 = Some (r, b1) ->
   r = Unit.
@@ -85,7 +85,7 @@ Qed.
   s : stack
   b : blockchain (mapping from handles to contract_reprs)
  *)
-Theorem transfer_1 ch rh b0:
+Theorem transfer_1 ch rh b0 :
   forall r b1,
   transfer_tokens Unit (Tez 1) ch rh Unit b0 = Some (r, b1) ->
   evaluates
@@ -102,11 +102,11 @@ Proof.
   rewrite P => /=.
   do 2 apply: evaluates_onestep => /=.
   exact: evaluates_self => /=.
-  apply (@transfer_success_returns_unit ch rh b0 R B).
+  apply (@transfer_1tez_success_returns_unit ch rh b0 R B).
   trivial.
 Qed.
 
-Theorem transfer_fail ch rh b0:
+Theorem transfer_fail ch rh b0 :
   transfer_tokens Unit (Tez 1) ch rh Unit b0 = None ->
   evaluates
     ch

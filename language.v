@@ -260,7 +260,7 @@ Fixpoint eq_td x y :=
 
 Definition is_comparable (d : tagged_data) : bool :=
   match d with
-    | Int _ | DBool _ | DTez _ => true
+    | Int _ | DBool _ | DTez _ | Timestamp _ => true
     | _ => false
   end.
 
@@ -317,6 +317,7 @@ Notation "'UNIT'" := (Push Unit).
 Notation "'PAIR'" := (Pair).
 Notation "'EQ'" := (Eq).
 Notation "'NEQ'" := (Neq).
+Notation "'GE'" := (Ge).
 Notation "'LT'" := (Lt).
 Notation "'NOT'" := (Not).
 Notation "'AND'" := (And).

@@ -72,6 +72,8 @@ Definition get_sub (x : tagged_data) (y : tagged_data) : option tagged_data :=
 Definition get_compare x y : option tagged_data :=
   match x,y with
     | Int x, Int y => Some (Int (if x==y then 0 else if (x < y) then -1 else 1))
+    | DTez (Tez x), DTez (Tez y) => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
+    | Timestamp x, Timestamp y => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
     | _, _ => None
   end.
 

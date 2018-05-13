@@ -62,10 +62,10 @@ Definition transfer_tokens
             | Tez amount,Tez sbalance,Tez rbalance =>
               if (amount <= sbalance) then
                 let b' :=
-                    checked_put eqkey hsender (scontract,Tez (sbalance-amount),sstorage) b in
+                    checked_put eqkey hsender (scontract, Tez (sbalance-amount), sstorage) b in
                 let b'' :=
-                    checked_put eqkey hreceiver (rcontract,Tez(rbalance+amount),rstorage) b' in
-                Some (Unit,b'')
+                    checked_put eqkey hreceiver (rcontract, Tez (rbalance+amount), rstorage) b' in
+                Some (Unit, b'')
               else
                 None
           end
