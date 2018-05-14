@@ -327,6 +327,18 @@ case: (step_fun i1 s m) => [[[i' s' ] m'] |] // [] -> -> -> /=.
 by case Hi1 : i1 => // .
 Qed.
 
+(* Lemma evaluates_equal h i1 s1 m1 i2 s2 m2 :
+  evaluates h (Some(i1,s1,m1)) (Some(i2,s2,m2)) ->
+  i1 <> Done ->
+  i2 = Done ->
+  evaluates h (ostep_fun h (Some(i1,s1,m1))) (Some(i2,s2,m2)).
+Proof.
+  intros A B C.
+  rewrite C.
+  rewrite C in A.
+  simpl.
+Qed. *)
+
 Lemma evaluates_onestep h st1 st2 :
   evaluates h (ostep_fun h st1) st2 ->
   evaluates h st1 st2.

@@ -127,3 +127,14 @@ Definition o_t_pair (ta tb : option type) :=
 (* get_instr_type i : option instr_type := [] --> []. *)
 
 End BooleanTyping.
+
+Lemma put_then_get h b :
+  forall con bal storage,
+  Some (con, bal, storage) = get_contract h (checked_put eqkey h (con, bal, storage) b).
+Admitted.
+
+Lemma put_does_not_change h b c:
+  forall h1 c1,
+  Some c = get_contract h b ->
+  Some c = get_contract h (checked_put eqkey h1 c1 b).
+Admitted.

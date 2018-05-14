@@ -46,6 +46,30 @@ Proof.
 Qed.
 *)
 
+(*
+Inductive var := A | B.
+
+Definition g a :=
+  if (a == 0)%N then A else B.
+
+Definition f a :=
+  match g a with
+  | A => None
+  | B => Some Unit
+  end.
+
+Lemma success :
+  forall y,
+  f y = Some Unit -> g y = B.
+Proof.
+  intros.
+  unfold f in H.
+  destruct (g y).
+  discriminate.
+  trivial.
+Qed.
+*)
+
 Lemma auction_success_returns_unit ch rh b0 :
   forall a s r b1,
   transfer_tokens Unit (Tez a) ch rh s b0 = Some (r, b1) ->
@@ -67,12 +91,10 @@ Proof.
       destruct cond.
       - inversion H.
         trivial.
-      - discriminate.
-      - discriminate.
-      - discriminate.
+  all: discriminate.
 Qed. 
 
-Theorem auction_1tez_prog_type :
+Theorem auction_prog_type :
   auction_prog :i: (
     [ t_pair
             (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit)))
@@ -82,7 +104,7 @@ Theorem auction_1tez_prog_type :
             (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit))) ]).
 Proof. by typecheck_program. Qed.
 
-Theorem auction_bid_higher ch b0 :
+Theorem auction_bid_higher_correct_refund ch b0 :
   forall t0 a0 h0 t1 a1 h1 r b1,
 
   let (amt0, amt1) := (a0%tz, a1%tz) in
@@ -129,9 +151,8 @@ Proof.
   trivial.
 Qed.
 
-Theorem auction_bid_higher_fail ch b0 :
+Theorem auction_bid_higher_exists ch b0 :
   forall t0 a0 h0 t1 a1 h1 r b1,
-
   let (amt0, amt1) := (a0%tz, a1%tz) in
   let (tstamp0, tstamp1) := (Timestamp t0, Timestamp t1) in
   let (contract0, contract1) := (DContract h0, DContract h1) in
@@ -141,11 +162,36 @@ Theorem auction_bid_higher_fail ch b0 :
   (t0 > t1)%N ->
   (a0 < a1)%N ->
   transfer_tokens Unit (Tez a0) ch h0 storage1 b0 = Some (r, b1) ->
-  evaluates
-    ch
-    (Some (auction_prog, [:: { parameter , storage0 } ], b0))
-    (Some (Done, [:: { Unit, storage1 }], b1)).
-Admitted.
+  exists con bal s,
+  Some (con, Tez bal, s) = get_contract ch b0 /\
+  Some (con, Tez (bal - a0), s) = get_contract ch b1.
+Proof.
+  intros t0 a0 h0 t1 a1 h1 r b1 T A P.
+  unfold transfer_tokens in P.
+  set getrh := (get_contract h0 b0) in P.
+  destruct getrh as [ c0 | ].
+  - destruct c0 as [p0 rstorage].
+    destruct p0 as [rcontract rbalance].
+    destruct (get_contract ch b0) as [ c1 | ].
+    - destruct c1 as [p1 sstorage].
+      destruct p1 as [scontract sbalance].
+      destruct sbalance as [ sbalance ].
+      destruct rbalance as [ rbalance ].
+      apply ex_intro with scontract.
+      apply ex_intro with sbalance.
+      apply ex_intro with sstorage.
+      split.
+      - trivial.
+      - destruct ((a0 <= sbalance)%N).
+        inversion P.
+        set conrep0 := (scontract, Tez (sbalance - a0), sstorage).
+        set conrep1 := (rcontract, Tez (rbalance + a0), rstorage).
+        set b01 := (checked_put eqkey ch conrep0 b0).
+        cut (Some conrep0 = get_contract ch b01).
+        apply put_does_not_change.
+      - apply put_then_get.
+  all: discriminate.
+Qed.
 
 Theorem auction_bid_lower ch b0 :
   forall t0 a0 h0 t1 a1 h1,
