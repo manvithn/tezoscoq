@@ -25,14 +25,6 @@ not understand as of now *)
 Axiom get_new_global : tagged_data -> tagged_data.
 Axiom get_return_value : tagged_data -> tagged_data.
 
-Axiom get_le : tagged_data -> bool.
-Axiom get_lt : tagged_data -> bool.
-Definition get_ge (x : tagged_data) : bool :=
-  match x with
-    | Int x => (x >= 0)
-    | _ => false
-  end.
-
 Definition tbool_of_bool (b : bool) : tagged_data :=
   match b with
     | true => DBool true
@@ -51,6 +43,38 @@ Definition get_neq x : tagged_data :=
     | _ => DBool false
   end.
 
+Definition get_lt (x : tagged_data) : bool :=
+  match x with
+    | Int x => (x < 0)
+    | _ => false
+  end.
+
+Definition get_le (x : tagged_data) : bool :=
+  match x with
+    | Int x => (x <= 0)
+    | _ => false
+  end.
+
+Definition get_gt (x : tagged_data) : bool :=
+  match x with
+    | Int x => (x > 0)
+    | _ => false
+  end.
+
+Definition get_ge (x : tagged_data) : bool :=
+  match x with
+    | Int x => (x >= 0)
+    | _ => false
+  end.
+
+Definition get_compare x y : option tagged_data :=
+  match x,y with
+    | Int x, Int y => Some (Int (if x==y then 0 else if (x < y) then -1 else 1))
+    | DTez (Tez x), DTez (Tez y) => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
+    | Timestamp x, Timestamp y => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
+    | _, _ => None
+  end.
+
 Definition get_mul (x : tagged_data) (y : tagged_data) : option tagged_data :=
   match x, y with
     | Int x, Int y => Some (Int (x * y))
@@ -66,14 +90,6 @@ Definition get_add (x : tagged_data) (y : tagged_data) : option tagged_data :=
 Definition get_sub (x : tagged_data) (y : tagged_data) : option tagged_data :=
   match x, y with
     | Int x, Int y => Some (Int (x - y))
-    | _, _ => None
-  end.
-
-Definition get_compare x y : option tagged_data :=
-  match x,y with
-    | Int x, Int y => Some (Int (if x==y then 0 else if (x < y) then -1 else 1))
-    | DTez (Tez x), DTez (Tez y) => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
-    | Timestamp x, Timestamp y => Some (Int (if (x == y)%N then 0 else if (x < y)%N then -1 else 1))
     | _, _ => None
   end.
 
@@ -112,6 +128,8 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
   | Eq => if s is x::s then if is_comparable x then Some(Done,((get_eq x))::s,m) else None else None
   | Neq => if s is x::s then if is_comparable x then Some(Done,((get_neq x))::s,m) else None else None
   | Lt => if s is x::s then if is_comparable x then Some(Done,(DBool (get_lt x))::s,m) else None else None
+  | Le => if s is x::s then if is_comparable x then Some(Done,(DBool (get_le x))::s,m) else None else None
+  | Gt => if s is x::s then if is_comparable x then Some(Done,(DBool (get_gt x))::s,m) else None else None
   | Ge => if s is x::s then if is_comparable x then Some(Done,(DBool (get_ge x))::s,m) else None else None
   | Not => if s is x::s then match x with
                               | DBool true => Some(Done,DBool false::s,m)

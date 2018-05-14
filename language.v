@@ -182,6 +182,8 @@ instr : Type :=
 | Eq : instr
 | Neq : instr
 | Lt : instr
+| Le : instr
+| Gt : instr
 | Ge : instr
 | Not : instr
 | And : instr
@@ -317,8 +319,10 @@ Notation "'UNIT'" := (Push Unit).
 Notation "'PAIR'" := (Pair).
 Notation "'EQ'" := (Eq).
 Notation "'NEQ'" := (Neq).
-Notation "'GE'" := (Ge).
 Notation "'LT'" := (Lt).
+Notation "'LE'" := (Le).
+Notation "'GT'" := (Gt).
+Notation "'GE'" := (Ge).
 Notation "'NOT'" := (Not).
 Notation "'AND'" := (And).
 Notation "'OR'" := (Or).
@@ -329,11 +333,16 @@ Notation "'LAMBDA' '{{' body '}}'" := (Lambda body) (at level 80, right associat
 Notation "'IF_SOME' '{{' bt '}}' '{{' bf '}}'" := (If_some bt bf) (at level 80, right associativity).
 Notation "'IF_NONE' '{{' bt '}}' '{{' bf '}}'" := (If_some bf bt) (at level 80, right associativity).
 Notation "'COMPARE'" := (Compare).
+Notation "'IFCMPLT' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Lt;; If bt bf) (at level 80, right associativity).
+Notation "'IFCMPLE' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Le;; If bt bf) (at level 80, right associativity).
+Notation "'IFCMPGT' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Gt;; If bt bf) (at level 80, right associativity).
 Notation "'IFCMPGE' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Ge;; If bt bf) (at level 80, right associativity).
 Notation "'CDR'" := (Cdr).
 Notation "'CAR'" := (Car).
+Notation "'CAAR'" := (CAR;; CAR).
 Notation "'CADR'" := (CAR;; CDR).
 Notation "'CDAR'" := (CDR;; CAR).
+Notation "'CDDR'" := (CDR;; CDR).
 Notation "'HASH'" := (Hash).
 Notation "'GET'" := (Get).
 Notation "'FAIL'" := (Fail).
@@ -455,6 +464,10 @@ Inductive has_instr_type : instr -> instr_type -> Prop :=
     SUB :i: ([ t_int ; t_int ] --> [ t_int ])
 | IT_Lt :
     Lt :i: ([ t_int ] --> [ t_bool ])
+| IT_Le :
+    Le :i: ([ t_int ] --> [ t_bool ])
+| IT_Gt :
+    Gt :i: ([ t_int ] --> [ t_bool ])
 | IT_Ge :
     Ge :i: ([ t_int ] --> [ t_bool ])
 | IT_Not :
