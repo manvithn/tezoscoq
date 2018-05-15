@@ -102,6 +102,7 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
                    None
   | Done => None
   | Nop => Some(Done,s,m)
+  | Fail => None
   | If bt bf => if s is x::s then
                  match x with
                    | DBool true => Some(bt,s,m)
@@ -125,6 +126,30 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
   | Swap => if s is x1::x2::s then Some(Done,x2::x1::s,m) else None
   | Push d => Some(Done,d::s,m)
   | Pair => if s is a::b::s then Some(Done,(DPair a b)::s,m) else None
+  | ISome => if s is o::s then Some(Done,(DOption (Some o))::s,m) else None
+  | INone => Some(Done,(DOption None)::s,m)
+  | ILeft => if s is l::s then Some(Done,(DOr (inl l))::s,m) else None
+  | IRight => if s is r::s then Some(Done,(DOr (inr r))::s,m) else None
+  | If_none bt bf => match s with
+                       | DOption (Some v)::s => Some(bt,v::s,m)
+                       | DOption (None)::s => Some(bf,s,m)
+                       | _ => None
+                     end
+  | If_some bt bf => match s with
+                       | DOption (None)::s => Some(bt,s,m)
+                       | DOption (Some v)::s => Some(bf,v::s,m)
+                       | _ => None
+                     end
+  | If_left bt bf => match s with
+                       | DOr (inl l)::s => Some(bt,l::s,m)
+                       | DOr (inr r)::s => Some(bf,r::s,m)
+                       | _ => None
+                     end
+  | If_right bt bf => match s with
+                       | DOr (inr r)::s => Some(bt,r::s,m)
+                       | DOr (inl l)::s => Some(bf,l::s,m)
+                       | _ => None
+                     end
   | Eq => if s is x::s then if is_comparable x then Some(Done,((get_eq x))::s,m) else None else None
   | Neq => if s is x::s then if is_comparable x then Some(Done,((get_neq x))::s,m) else None else None
   | Lt => if s is x::s then if is_comparable x then Some(Done,(DBool (get_lt x))::s,m) else None else None
@@ -167,11 +192,6 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
               | None => None
           end else None
   | Lambda code => Some(Done,DLambda code::s,m)
-  | If_some bt bf => match s with
-                       | DOption (Some v)::s => Some(bt,v::s,m)
-                       | DOption (None)::s => Some(bf,s,m)
-                       | _ => None
-                     end
   | Compare => if s is x1::x2::s then
                  match get_compare x1 x2 with
                    | Some res => Some(Done,res::s,m)
@@ -197,17 +217,20 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
                  | None => Some (Done,(DOption None)::s,m)
              end
            else None
-  | Fail => None
   (* :: key : pair signature string : 'S   ->   bool : 'S *)
   | Check_signature => if s is DKey key:: DPair (DSignature sig) (DString text)::s then Some (Done,DBool (check_signature key sig text) ::s,m) else None
   | Map_reduce => if s is (DLambda lam)::(DMap Map)::x::s then
                     Some (Push x ;; Reduce_rec lam Map, s, m)
                   else
                     None
+  | Balance => match get_balance cur_handle m with
+                 | None => None (* shouldn't happen -> means this contract is not on the blockchain *)
+                 | Some t => Some(Done,(DTez t)::s,m)
+               end
   | Transfer_tokens => if s is [input;DTez amount;DContract hreceiver;new_storage] then
                          match transfer_tokens input amount cur_handle hreceiver new_storage m with
                            | None => None (* transaction failed) *)
-                           | Some (result,m') => Some(DONE,[result;new_storage],m')
+                           | Some (result,m') => Some(Done,[result;new_storage],m')
                          end
                        else None
   | Exec => if s is x::DLambda f::s then Some(f,x::s,m) else None
@@ -461,7 +484,7 @@ Lemma evaluates_if h bt bf x s m st :
   evaluates h (Some(If bt bf,x::s,m)) st.
 Proof.
 move => Htype.
-inversion Htype as [b H| | | | | | | | | | ]; case: b H => H H1 H2.
+inversion Htype as [b H| | | | | | | | | | | | | | ]; case: b H => H H1 H2.
 - case: H1 => // => f1 Hev1.
   by exists f1.+1; move: Hev1; rewrite /evaluate iterSr /=.
 - case: H2 => // => f2 Hev2.

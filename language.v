@@ -18,6 +18,7 @@ with type :=
 | t_int
 | t_bool : type
 | t_pair : type -> type -> type
+| t_or : type -> type -> type
 | t_option : type -> type
 | t_list : type -> type
 | t_string : type
@@ -161,6 +162,7 @@ Inductive tagged_data :=
 | Timestamp : timestamp -> tagged_data
 | DTez : tez -> tagged_data
 | DPair : tagged_data -> tagged_data -> tagged_data
+| DOr : (sum tagged_data tagged_data) -> tagged_data
 | DMap : myMap tagged_data tagged_data -> tagged_data
 | DLambda : instr -> tagged_data
 | DOption : (option tagged_data) -> tagged_data
@@ -171,6 +173,7 @@ instr : Type :=
 | Seq : instr -> instr -> instr
 | Done : instr
 | Nop : instr
+| Fail : instr
 | If : instr -> instr -> instr
 | Loop : instr -> instr
 | Dip : instr -> instr
@@ -192,15 +195,22 @@ instr : Type :=
 | Add : instr
 | Sub : instr
 | Lambda : instr -> instr
-| If_some : instr -> instr -> instr
 | Compare : instr
 | Car : instr
 | Cdr : instr
+| ISome : instr
+| INone : instr
+| ILeft : instr
+| IRight : instr
+| If_none : instr -> instr -> instr
+| If_some : instr -> instr -> instr
+| If_left : instr -> instr -> instr
+| If_right : instr -> instr -> instr
 | Hash : instr
 | Get : instr
-| Fail : instr
 | Check_signature : instr
 | Map_reduce : instr
+| Balance : instr
 | Transfer_tokens : instr
 | Exec : instr
 | Create_contract : instr
@@ -217,10 +227,11 @@ Fixpoint serialize (t : tagged_data) : string :=
     | DSignature (Sign (K key) text) => "sign("++key++","++text++")"
     | Timestamp t => "<timestamp>"
     | DTez t => "<some amount in tezos>"
-    | DPair a b => "("++(serialize a)++","++(serialize b)++")"
+    | DPair a b => "("++(serialize a)++", "++(serialize b)++")"
+    | DOr o => match o with inl a => "Left " ++ (serialize a) | inr b => "Right " ++ (serialize b) end
     | DMap m => "<map>"
     | DLambda l => "<lambda>"
-    | DOption o => match o with Some o => "Some "++(serialize o) | None => "None" end
+    | DOption o => match o with Some o => "Some " ++ (serialize o) | None => "None" end
     | DContract handle => "<Contract : <handle> >"
     | DList l => "<TODO: encoding of lists>"
   end.
@@ -239,8 +250,6 @@ Fixpoint eq_td x y :=
     | DString (Shash (hash x1)),DString (Shash (hash x2)) => eq_string x1 x2
     | _, _ => false
   end.
-
-
 
 (* | Signature <signature constant> *)
 (* | Key <key constant> *)
@@ -284,6 +293,20 @@ Definition is_pair x :=
     | _ => false
   end.
 
+Definition is_or x := 
+  match x with
+    | DOr (inl _) => true
+    | DOr (inr _) => true
+    | _ => false
+  end.
+
+Definition is_option x := 
+  match x with
+    | DOption (Some _) => true
+    | DOption None => true
+    | _ => false
+  end.
+
 Definition stack := list tagged_data.
 
 End DataAndInstr.
@@ -300,7 +323,11 @@ Notation "k %dk" := (DKey (K k)) (at level 80, right associativity).
 (* Notation "#signof< k , sig , text >" := (Sign k sig text) (at level 79, right associativity). *) (* does not work *)
 Notation "#hashof< h >" := ((Shash (hash h))) (at level 80, right associativity).
 (* TODO: find better notation, with smarter precedence for pairs *)
-Notation "'{' x ',' y }" := (DPair x y) (at level 80, right associativity).
+Notation "'{' x ',' y '}'" := (DPair x y) (at level 80, right associativity).
+Notation "#left< x >" := (DOr (inl x)) (at level 80, right associativity).
+Notation "#right< x >" := (DOr (inr x)) (at level 80, right associativity).
+Notation "#some< x >" := (DOr (Some x)) (at level 80, right associativity).
+Notation "#none" := (DOption None) (at level 80, right associativity).
 
 (* Notations for instructions *)
 
@@ -330,8 +357,6 @@ Notation "'MUL'" := (Mul).
 Notation "'ADD'" := (Add).
 Notation "'SUB'" := (Sub).
 Notation "'LAMBDA' '{{' body '}}'" := (Lambda body) (at level 80, right associativity).
-Notation "'IF_SOME' '{{' bt '}}' '{{' bf '}}'" := (If_some bt bf) (at level 80, right associativity).
-Notation "'IF_NONE' '{{' bt '}}' '{{' bf '}}'" := (If_some bf bt) (at level 80, right associativity).
 Notation "'COMPARE'" := (Compare).
 Notation "'IFCMPLT' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Lt;; If bt bf) (at level 80, right associativity).
 Notation "'IFCMPLE' '{{' bt '}}' '{{' bf '}}'" := (Compare;; Le;; If bt bf) (at level 80, right associativity).
@@ -343,11 +368,20 @@ Notation "'CAAR'" := (CAR;; CAR).
 Notation "'CADR'" := (CAR;; CDR).
 Notation "'CDAR'" := (CDR;; CAR).
 Notation "'CDDR'" := (CDR;; CDR).
+Notation "'SOME'" := (ISome).
+Notation "'NONE'" := (INone).
+Notation "'LEFT'" := (ILeft).
+Notation "'RIGHT'" := (IRight).
+Notation "'IF_NONE' '{{' bt '}}' '{{' bf '}}'" := (If_none bf bt) (at level 80, right associativity).
+Notation "'IF_SOME' '{{' bt '}}' '{{' bf '}}'" := (If_some bt bf) (at level 80, right associativity).
+Notation "'IF_LEFT' '{{' bt '}}' '{{' bf '}}'" := (If_left bt bf) (at level 80, right associativity).
+Notation "'IF_RIGHT' '{{' bt '}}' '{{' bf '}}'" := (If_right bt bf) (at level 80, right associativity).
 Notation "'HASH'" := (Hash).
 Notation "'GET'" := (Get).
 Notation "'FAIL'" := (Fail).
 Notation "'CHECK_SIGNATURE'" := (Check_signature).
 Notation "'MAP_REDUCE'" := (Map_reduce).
+Notation "'BALANCE'" := (Balance).
 Notation "'TRANSFER_TOKENS'" := (Transfer_tokens).
 Notation "'EXEC'" := (Exec).
 Notation "'GET'" := (Get).
@@ -440,7 +474,7 @@ Inductive has_instr_type : instr -> instr_type -> Prop :=
 | IT_Swap : forall t1 t2,
     SWAP :i: ([ t1 ; t2 ] --> [ t2 ; t1 ])
 | IT_Push : forall v t,
-    has_data_type v t ->
+    v :d: t ->
     PUSH v :i: ([] --> [ t ])
 | IT_Pair : forall t1 t2,
     PAIR :i: ([t1 ; t2] --> [ t_pair t1 t2 ])
@@ -481,16 +515,36 @@ Inductive has_instr_type : instr -> instr_type -> Prop :=
 | IT_Lambda : forall b Sb,
     b :i: Sb ->
     Lambda b :i: ([] --> [ t_quotation Sb ])
-| IT_If_Some : forall t Sa Sb bt bf,
-    bt :i: (t :: Sa --> Sb) ->
-    bf :i: (Sa --> Sb) ->
-    If_some bt bf :i: (t_option t :: Sa --> Sb)
 | IT_Compare : forall t,
     Compare :i: ([ t ; t ] --> [ t_int ])
 | IT_Car : forall t1 t2,
     Car :i: ([ t_pair t1 t2 ] --> [ t1 ])
 | IT_Cdr : forall t1 t2,
     Cdr :i: ([ t_pair t1 t2 ] --> [ t2 ])
+| IT_ISome : forall t,
+    ISome :i: ([ t ] --> [ t_option t ])
+| IT_INone : forall t,
+    INone :i: ([] --> [ t_option t ])
+| IT_ILeft : forall l r,
+    ILeft :i: ([ l ] --> [ t_or l r ])
+| IT_IRight :  forall l r,
+    IRight :i: ([ r ] --> [ t_or l r ])
+| IT_If_None : forall a b S bt bf,
+    bt :i: (S --> b :: S) ->
+    bf :i: (a :: S --> b :: S) ->
+    If_none bt bf :i: (t_option a :: S --> b :: S)
+| IT_If_Some : forall a b S bt bf,
+    bt :i: (a :: S --> b :: S) ->
+    bf :i: (S --> b :: S) ->
+    If_some bt bf :i: (t_option a :: S --> b :: S)
+| IT_If_Left : forall a b c S bt bf,
+    bt :i: (a :: S --> c :: S) ->
+    bf :i: (b :: S --> c :: S) ->
+    If_left bt bf :i: (t_or a b :: S --> c :: S)
+| IT_If_Right : forall a b c S bt bf,
+    bt :i: (b :: S --> c :: S) ->
+    bf :i: (a :: S --> c :: S) ->
+    If_right bt bf :i: (t_or a b :: S --> c :: S)
 | IT_Hash : forall t,
     Hash :i: ([ t ] --> [ t_string ])
 | IT_Get : forall tk tv,
@@ -502,21 +556,27 @@ Inductive has_instr_type : instr -> instr_type -> Prop :=
 | IT_Map_reduce : forall tk tv t,
     Map_reduce :i: ([ t_quotation ([t_pair (t_pair tk tv) t ] --> [ t ]) ; t_map tk tv ; t ] --> [ t ])
 (* TODO: is that correct? Anything to ensure on g? *)
+| IT_Balance :
+    Balance :i: ([] --> [ t_tez ])
 | IT_Transfer_tokens : forall p r g,
     Transfer_tokens :i: ([ p ; t_tez ; t_contract p r ; g ] --> [ r ; g ] )
 where "i ':i:' IT" := (has_instr_type i IT)
 
 with has_data_type : tagged_data -> type -> Type :=
-| T_bool : forall b, DBool b :d: t_bool
+| T_Bool : forall b, DBool b :d: t_bool
 | T_Int : forall z, Int z :d: t_int
 | T_Unit : Unit :d: t_unit
 | T_Pair : forall a b ta tb, a :d: ta -> b :d: tb -> DPair a b :d: t_pair ta tb
+| T_OrLeft : forall o tl tr, o :d: tl -> DOr (inl o) :d: t_or tl tr
+| T_OrRight : forall o tl tr, o :d: tr -> DOr (inr o) :d: t_or tl tr
 | T_Tez : forall t, DTez t :d: t_tez
 | T_Key : forall k, DKey (K k) :d: t_key
-| T_option : forall o t, o :d: t -> DOption (Some o) :d: t_option t
+| T_OptionSome : forall o t, o :d: t -> DOption (Some o) :d: t_option t
+| T_OptionNone : forall t, DOption None :d: t_option t
 | T_map : forall m dfk dfv ta tb, dfk :d: ta -> dfv :d: tb -> (forall i, let kv := nth (dfk,dfv) m i in DPair kv.1 kv.2 :d: t_pair ta tb) -> DMap m :d: t_map ta tb
 | T_string : forall s, DString s :d: t_string
 | T_list : forall l A, DList l :d: t_list A
+| T_timestamp : forall n, Timestamp n :d: t_timestamp
 | T_signature : forall k s, DSignature (Sign k s) :d: t_signature
 where "d ':d:' DT" := (has_data_type d DT).
 
@@ -587,6 +647,7 @@ Fixpoint default (t : type) : tagged_data :=
     | t_unit => Unit
     | t_bool => DBool true
     | t_pair a b => DPair (default a) (default b)
+    | t_or a b => DOr (inl (default a))
     | t_string => DString (Sstring "")
     | t_option ta => (DOption (Some(default ta)))
     | t_list ta => DList [default ta]
@@ -607,13 +668,13 @@ Proof.
 elim: t => //= .
 - by move => ta Ha tb Hb // ; constructor.
 - by move => t Ht;constructor.
+- by move => t Ht;constructor.
 - move => t H t' Ht'. econstructor.
     exact: H.
     exact: Ht'.
     case => [|i] //= ; constructor => //= .
     by rewrite nth_nil.
     by rewrite nth_nil.
-- admit. (* FIXME *)
 - admit. (* FIXME *)
 - admit. (* FIXME *)
 Admitted.

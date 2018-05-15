@@ -48,6 +48,12 @@ Definition create_contract (k : key) (ok : option key) (sp dl : bool) (am : tez)
   let contract := C k ok sp dl i in
   (h,put h (contract,am,storage) b).
 
+Definition get_balance (h : handle) (b : blockchain) : option tez :=
+  match get_contract h b with
+    | None => None
+    | Some(_,balance,_) => Some balance
+  end.
+
 Definition transfer_tokens
            (input : tagged_data) (amount : tez) (hsender hreceiver : handle)
            (new_storage : tagged_data) (b : blockchain) :

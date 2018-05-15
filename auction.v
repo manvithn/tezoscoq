@@ -106,7 +106,6 @@ Proof. by typecheck_program. Qed.
 
 Theorem auction_bid_higher_correct_refund ch b0 :
   forall t0 a0 h0 t1 a1 h1 r b1,
-
   let (amt0, amt1) := (a0%tz, a1%tz) in
   let (tstamp0, tstamp1) := (Timestamp t0, Timestamp t1) in
   let (contract0, contract1) := (DContract h0, DContract h1) in
