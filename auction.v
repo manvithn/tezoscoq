@@ -160,12 +160,13 @@ Theorem auction_bid_higher_exists ch b0 :
   let storage1 := { tstamp0 , { amt1 , contract1 } } in
   (t0 > t1)%N ->
   (a0 < a1)%N ->
+  ch != h0 ->
   transfer_tokens Unit (Tez a0) ch h0 storage1 b0 = Some (r, b1) ->
   exists con bal s,
   Some (con, Tez bal, s) = get_contract ch b0 /\
   Some (con, Tez (bal - a0), s) = get_contract ch b1.
 Proof.
-  intros t0 a0 h0 t1 a1 h1 r b1 T A P.
+  intros t0 a0 h0 t1 a1 h1 r b1 T A NE P.
   unfold transfer_tokens in P.
   set getrh := (get_contract h0 b0) in P.
   destruct getrh as [ c0 | ].
@@ -187,7 +188,7 @@ Proof.
         set conrep1 := (rcontract, Tez (rbalance + a0), rstorage).
         set b01 := (checked_put eqkey ch conrep0 b0).
         cut (Some conrep0 = get_contract ch b01).
-        apply put_does_not_change.
+        apply put_isolate_get. assumption.
       - apply put_then_get.
   all: discriminate.
 Qed.

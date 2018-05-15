@@ -137,10 +137,66 @@ End BooleanTyping.
 Lemma put_then_get h b :
   forall con bal storage,
   Some (con, bal, storage) = get_contract h (checked_put eqkey h (con, bal, storage) b).
-Admitted.
+Proof.
+  intros con bal store.
+  unfold get_contract.
+  unfold checked_put.
+  set tail := (remove eqkey h (con, bal, store) b).
+  unfold get. simpl.
+  set ind := ((find
+  (fun kv : nat * (contract * balance * storage) =>
+   eqkey kv.1 h) tail).+1).
+  cut ((if eqkey h h then 0 else ind) = 0).
+  intro P. rewrite P.
+  cut (0 < (size tail).+1 = true).
+  intro Q. rewrite Q.
+  unfold nth.
+  trivial.
+  - trivial.
+  - unfold eqkey.
+    cut ((h == h) = true).
+    intro H. rewrite H. trivial.
+    - apply eq_refl.
+Qed.
 
-Lemma put_does_not_change h b c:
+Lemma put_isolate_get h b c:
   forall h1 c1,
+  h != h1 ->
   Some c = get_contract h b ->
   Some c = get_contract h (checked_put eqkey h1 c1 b).
+Proof.
+  intros h1 c1 Hneq P.
+  unfold checked_put.
+  set tail := (remove eqkey h1 c1 b).
+  cut (size tail == 0 = false).
+  intro X.
+  unfold get_contract.
+  unfold get. unfold find.
+  cut (eqkey (h1, c1).1 h = false).
+  intro A. rewrite A.
+  simpl.
+  set findfunc := (fix find (s : seq (nat * (contract * balance * storage))) : nat :=
+  match s with
+  | [::] => 0
+  | x :: s' => if eqkey x.1 h then 0 else (find s').+1
+  end).
+  cut ((findfunc tail).+1 = (findfunc tail) + 1).
+  cut ((size tail).+1 = (size tail) + 1).
+  intros B C. rewrite B. rewrite C.
+  rewrite ltn_add2r.
+  induction tail.
+  - simpl in X. cut (0 == 0 = true). intro Y. discriminate.
+    - trivial.
+  - cut (findfunc (a :: tail) < size (a :: tail) = true).
+    intro Z. rewrite Z. admit.
+    - admit.
+  - rewrite addn1. trivial.
+  - rewrite addn1. trivial.
+  - simpl. unfold eqkey. rewrite eq_sym. apply negbTE. trivial.
+  - unfold get_contract in P. unfold get in P.
+    set cond := (find (fun kv : nat * (contract * balance * storage) => eqkey kv.1 h) b < size b) in P.
+    cut (cond = true). intro C.
+    rewrite C in P.
+    - admit.
+    - admit.
 Admitted.
