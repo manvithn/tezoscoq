@@ -18,6 +18,7 @@ with type :=
 | t_int
 | t_bool : type
 | t_pair : type -> type -> type
+| t_or : type -> type -> type
 | t_option : type -> type
 | t_list : type -> type
 | t_string : type
@@ -161,6 +162,7 @@ Inductive tagged_data :=
 | Timestamp : timestamp -> tagged_data
 | DTez : tez -> tagged_data
 | DPair : tagged_data -> tagged_data -> tagged_data
+| DOr : (sum tagged_data tagged_data) -> tagged_data
 | DMap : myMap tagged_data tagged_data -> tagged_data
 | DLambda : instr -> tagged_data
 | DOption : (option tagged_data) -> tagged_data
@@ -217,7 +219,8 @@ Fixpoint serialize (t : tagged_data) : string :=
     | DSignature (Sign (K key) text) => "sign("++key++","++text++")"
     | Timestamp t => "<timestamp>"
     | DTez t => "<some amount in tezos>"
-    | DPair a b => "("++(serialize a)++","++(serialize b)++")"
+    | DPair a b => "("++(serialize a)++", "++(serialize b)++")"
+    | DOr o => match o with inl a => "Left " ++ (serialize a) | inr b => "Right " ++ (serialize b) end
     | DMap m => "<map>"
     | DLambda l => "<lambda>"
     | DOption o => match o with Some o => "Some "++(serialize o) | None => "None" end
@@ -511,6 +514,8 @@ with has_data_type : tagged_data -> type -> Type :=
 | T_Int : forall z, Int z :d: t_int
 | T_Unit : Unit :d: t_unit
 | T_Pair : forall a b ta tb, a :d: ta -> b :d: tb -> DPair a b :d: t_pair ta tb
+| T_OrLeft : forall o tl tr, o :d: tl -> DOr (inl o) :d: t_or tl tr
+| T_OrRight : forall o tl tr, o :d: tr -> DOr (inr o) :d: t_or tl tr
 | T_Tez : forall t, DTez t :d: t_tez
 | T_Key : forall k, DKey (K k) :d: t_key
 | T_option : forall o t, o :d: t -> DOption (Some o) :d: t_option t
@@ -587,6 +592,7 @@ Fixpoint default (t : type) : tagged_data :=
     | t_unit => Unit
     | t_bool => DBool true
     | t_pair a b => DPair (default a) (default b)
+    | t_or a b => DOr (inl (default a))
     | t_string => DString (Sstring "")
     | t_option ta => (DOption (Some(default ta)))
     | t_list ta => DList [default ta]
@@ -606,6 +612,7 @@ Lemma type_default (t : type) : default t :d: t.
 Proof.
 elim: t => //= .
 - by move => ta Ha tb Hb // ; constructor.
+- by move => t Ht;constructor.
 - by move => t Ht;constructor.
 - move => t H t' Ht'. econstructor.
     exact: H.

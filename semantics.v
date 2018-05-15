@@ -461,7 +461,7 @@ Lemma evaluates_if h bt bf x s m st :
   evaluates h (Some(If bt bf,x::s,m)) st.
 Proof.
 move => Htype.
-inversion Htype as [b H| | | | | | | | | | ]; case: b H => H H1 H2.
+inversion Htype as [b H| | | | | | | | | | | | ]; case: b H => H H1 H2.
 - case: H1 => // => f1 Hev1.
   by exists f1.+1; move: Hev1; rewrite /evaluate iterSr /=.
 - case: H2 => // => f2 Hev2.
