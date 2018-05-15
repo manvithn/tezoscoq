@@ -131,13 +131,13 @@ Fixpoint step_fun (i : instr) (s : stack) (m : memory) (cur_handle : handle) : o
   | ILeft => if s is l::s then Some(Done,(DOr (inl l))::s,m) else None
   | IRight => if s is r::s then Some(Done,(DOr (inr r))::s,m) else None
   | If_none bt bf => match s with
-                       | DOption (Some v)::s => Some(bt,v::s,m)
-                       | DOption (None)::s => Some(bf,s,m)
+                       | DOption (None)::s => Some(bt,s,m)
+                       | DOption (Some v)::s => Some(bf,v::s,m)
                        | _ => None
                      end
   | If_some bt bf => match s with
-                       | DOption (None)::s => Some(bt,s,m)
-                       | DOption (Some v)::s => Some(bf,v::s,m)
+                       | DOption (Some v)::s => Some(bt,v::s,m)
+                       | DOption (None)::s => Some(bf,s,m)
                        | _ => None
                      end
   | If_left bt bf => match s with
