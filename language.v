@@ -227,7 +227,7 @@ Fixpoint serialize (t : tagged_data) : string :=
     | DSignature (Sign (K key) text) => "sign("++key++","++text++")"
     | Timestamp t => "<timestamp>"
     | DTez t => "<some amount in tezos>"
-    | DPair a b => "("++(serialize a)++", "++(serialize b)++")"
+    | DPair a b => "(" ++ (serialize a) ++ ", " ++ (serialize b) ++ ")"
     | DOr o => match o with inl a => "Left " ++ (serialize a) | inr b => "Right " ++ (serialize b) end
     | DMap m => "<map>"
     | DLambda l => "<lambda>"
