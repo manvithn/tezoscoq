@@ -173,6 +173,7 @@ instr : Type :=
 | Seq : instr -> instr -> instr
 | Done : instr
 | Nop : instr
+| Fail : instr
 | If : instr -> instr -> instr
 | Loop : instr -> instr
 | Dip : instr -> instr
@@ -200,7 +201,6 @@ instr : Type :=
 | Cdr : instr
 | Hash : instr
 | Get : instr
-| Fail : instr
 | Check_signature : instr
 | Map_reduce : instr
 | Transfer_tokens : instr
@@ -219,11 +219,11 @@ Fixpoint serialize (t : tagged_data) : string :=
     | DSignature (Sign (K key) text) => "sign("++key++","++text++")"
     | Timestamp t => "<timestamp>"
     | DTez t => "<some amount in tezos>"
-    | DPair a b => "("++(serialize a)++", "++(serialize b)++")"
+    | DPair a b => "(" ++ (serialize a) ++ ", " ++ (serialize b) ++ ")"
     | DOr o => match o with inl a => "Left " ++ (serialize a) | inr b => "Right " ++ (serialize b) end
     | DMap m => "<map>"
     | DLambda l => "<lambda>"
-    | DOption o => match o with Some o => "Some "++(serialize o) | None => "None" end
+    | DOption o => match o with Some o => "Some " ++ (serialize o) | None => "None" end
     | DContract handle => "<Contract : <handle> >"
     | DList l => "<TODO: encoding of lists>"
   end.
@@ -287,6 +287,20 @@ Definition is_pair x :=
     | _ => false
   end.
 
+Definition is_or x := 
+  match x with
+    | DOr (inl _) => true
+    | DOr (inr _) => true
+    | _ => false
+  end.
+
+Definition is_option x := 
+  match x with
+    | DOption (Some _) => true
+    | DOption None => true
+    | _ => false
+  end.
+
 Definition stack := list tagged_data.
 
 End DataAndInstr.
@@ -303,7 +317,11 @@ Notation "k %dk" := (DKey (K k)) (at level 80, right associativity).
 (* Notation "#signof< k , sig , text >" := (Sign k sig text) (at level 79, right associativity). *) (* does not work *)
 Notation "#hashof< h >" := ((Shash (hash h))) (at level 80, right associativity).
 (* TODO: find better notation, with smarter precedence for pairs *)
-Notation "'{' x ',' y }" := (DPair x y) (at level 80, right associativity).
+Notation "'{' x ',' y '}'" := (DPair x y) (at level 80, right associativity).
+Notation "#left< x >" := (DOr (inl x)) (at level 80, right associativity).
+Notation "#right< x >" := (DOr (inr x)) (at level 80, right associativity).
+Notation "#some< x >" := (DOption (Some x)) (at level 80, right associativity).
+Notation "#none" := (DOption None) (at level 80, right associativity).
 
 (* Notations for instructions *)
 
