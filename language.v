@@ -326,7 +326,7 @@ Notation "#hashof< h >" := ((Shash (hash h))) (at level 80, right associativity)
 Notation "'{' x ',' y '}'" := (DPair x y) (at level 80, right associativity).
 Notation "#left< x >" := (DOr (inl x)) (at level 80, right associativity).
 Notation "#right< x >" := (DOr (inr x)) (at level 80, right associativity).
-Notation "#some< x >" := (DOr (Some x)) (at level 80, right associativity).
+Notation "#some< x >" := (DOption (Some x)) (at level 80, right associativity).
 Notation "#none" := (DOption None) (at level 80, right associativity).
 
 (* Notations for instructions *)
@@ -555,9 +555,9 @@ Inductive has_instr_type : instr -> instr_type -> Prop :=
     Check_signature :i: ([ t_key; t_pair t_signature t_string ] --> [ t_bool ])
 | IT_Map_reduce : forall tk tv t,
     Map_reduce :i: ([ t_quotation ([t_pair (t_pair tk tv) t ] --> [ t ]) ; t_map tk tv ; t ] --> [ t ])
-(* TODO: is that correct? Anything to ensure on g? *)
 | IT_Balance :
     Balance :i: ([] --> [ t_tez ])
+(* TODO: is that correct? Anything to ensure on g? *)
 | IT_Transfer_tokens : forall p r g,
     Transfer_tokens :i: ([ p ; t_tez ; t_contract p r ; g ] --> [ r ; g ] )
 where "i ':i:' IT" := (has_instr_type i IT)

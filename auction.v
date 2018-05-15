@@ -26,6 +26,16 @@ Definition auction_prog :=
     (* Cleanup and put the return values *)
     PAIR.
 
+Theorem auction_prog_type :
+  auction_prog :i: (
+    [ t_pair
+            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit)))
+            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit))) ] -->
+    [ t_pair
+            t_unit
+            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit))) ]).
+Proof. by typecheck_program. Qed.  
+
 (* 
 Inductive var := B : nat -> var.
 
@@ -93,16 +103,6 @@ Proof.
         trivial.
   all: discriminate.
 Qed. 
-
-Theorem auction_prog_type :
-  auction_prog :i: (
-    [ t_pair
-            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit)))
-            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit))) ] -->
-    [ t_pair
-            t_unit
-            (t_pair t_timestamp (t_pair t_tez (t_contract t_unit t_unit))) ]).
-Proof. by typecheck_program. Qed.
 
 Theorem auction_bid_higher_correct_refund ch b0 :
   forall t0 a0 h0 t1 a1 h1 r b1,
